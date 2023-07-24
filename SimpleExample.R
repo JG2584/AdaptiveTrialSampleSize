@@ -2,7 +2,26 @@
 
 # Data Generating Function
 create_rct_data <- function(n, mu_0, mu_1, sigma_0, sigma_1) {
-  group <- sample(rep(c(0,1),n)) #be close to real sampling, consider the randomness
+  # Randomization procedure 1
+  group <- sample(rep(c(0,1),n)) 
+  
+  # Randomization procedure 2: Binomial
+  # most random way to generate the sequence:note that this result in non-equal 
+  # sample size per arm
+  group <- (runif(2*n) > 0.5)*1
+  
+  # Randomization procedure 3: Truncated Binomial
+  group <- c()
+  for (i in 1:(2*n)) {
+    a <- sum(group == 1)
+    b <- sum(group == 0)
+    if (max(a, b) >= n) {
+      group <- c(group, rep(1, n - a), rep(0, n - b))
+      break
+    }
+    group <- c(group, (runif(1) > 0.5)*1)
+  }
+  
   outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
     group * rnorm(n=n, mean=mu_1, sd=sigma_1)
   return(data.frame("group"=group, "outcome"=outcome))
@@ -46,7 +65,6 @@ power_formula <- sapply(sample_size, function (n){
   pnorm(sqrt((n*(17-18)^2)/(2^2+2^2)) - qnorm(0.025, lower.tail=F))
 })
 
-
 library(ggplot2)
 ggplot(data.frame(
   n = rep(sample_size, 2),
@@ -75,14 +93,18 @@ power_sim <- sim %>% summarize(
 print(power_sim)
 
 ## Package the simulation study in a function
+
 # Input: number of simulation study, mean of control group, mean of experimental group, 
 # variance of control group and experimental group, minimized sample size, maximized sample size and 
 # the threshold of power
-# Output:.... 
-sim_cpmean <- function(kSim,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,thereshold){
+
+# Output: List of two elements: Table of sample size with its power, the minimum
+# sample size that is over the threshold
+sim_cpmean <- function(kSim,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,threshold){
   set.seed(43)
   power_sim <- data.frame(matrix(ncol = 2, nrow = 0))
   colnames(power_sim) <- c("SampleSize","Power")
+  # Consider change it to bisection method
   sample_size <- seq(min_sz,max_sz,10)
   start_time <- Sys.time()
   for (i in 1:length(sample_size)){
@@ -98,7 +120,6 @@ sim_cpmean <- function(kSim,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,thereshold)
     }
     power_sim[i,] <- c(sample_size[i],sum(df_temp$test)/kSim)
   }
-  print(power_sim)
   elgb_sz <- c()
   for (row in 1:dim(power_sim)[1]){
     if (power_sim[row,2] > threshold){
@@ -107,6 +128,6 @@ sim_cpmean <- function(kSim,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,thereshold)
   }
   end_time <- Sys.time()
   print(end_time - start_time)
-  return(list(elgb_sz,power_sim))
+  return(list(power_sim,min(elgb_sz)))
 }
-print(sim_cpmean(1000,17,18,2,2,100,150,90))
+print(sim_cpmean(100,17,18,2,2,100,150,0.9))
