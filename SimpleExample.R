@@ -29,18 +29,38 @@ create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
     }
   }
   
-  outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
-    group * rnorm(n=n, mean=mu_1, sd=sigma_1)
+  
+  #outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
+  #  group * rnorm(n=n, mean=mu_1, sd=sigma_1)
+  outcome <- c()
+  for (i in 1: length(group)){
+    if (group[i] == 0){
+      outcome[i] <- rnorm(1,mean=mu_0, sd=sigma_0)
+    }
+    else{
+      outcome[i] <- rnorm(1,mean=mu_1, sd=sigma_1)
+    }
+  }
   return(data.frame("group"=group, "outcome"=outcome))
 }
 
 # Test data-generating function
-create_rct_data(n=3, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
+data1 <- create_rct_data(n=4, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
 
-# Test whether to reject null-hypothesis
+# Test whether to reject null-hypothesis using z-test
 run_test <- function(data) {
-  test_result <- t.test(outcome~group, data=data)
-  return(as.integer(test_result$p.value<0.05))
+  #test_result <- t.test(outcome~group, data=data)
+  #return(as.integer(test_result$p.value<0.05))
+  
+  group_means <- tapply(data$outcome, data$group, mean)
+  group_sds <- tapply(data$outcome, data$group, sd)
+  n1 <- sum(data$group == levels(as.factor(data$group))[1])
+  n2 <- sum(data$group == levels(as.factor(data$group))[2])
+  
+  z_score <- (group_means[1] - group_means[2]) / sqrt((group_sds[1]^2 / n1) + (group_sds[2]^2 / n2))
+  p_value <- 2 * (1 - pnorm(abs(z_score)))
+  
+  return(as.integer(p_value < 0.05))
 }
 
 #### Simulation Study ####
@@ -173,10 +193,16 @@ min_nr <- list(min_nr1,min_nr2,min_nr3)
 var_nr <- c(var(min_nr1),var(min_nr2),var(min_nr3))
 
 print(var_nr)
+freq_table1 <- table(min_nr3)
+max_frequency1 <- max(freq_table1)
+most_frequent_elements <- names(freq_table1)[freq_table1== max_frequency1]
+
+cat("Most frequently occurring element(s): ", most_frequent_elements, "\n")
 print(c(abs(n_formula(0.9)-mean(min_nr1)),abs(n_formula(0.9)-mean(min_nr2)),
         abs(n_formula(0.9)-mean(min_nr3))))
 
 # Histogram
+par(mfrow = c(3,1))
 for (i in 1:3){
   hist(min_nr[[i]], main = paste("Histogram of n for Randomization Procedure " , i),
        xlab = "Minimum Sample Size")
@@ -192,7 +218,7 @@ calc_min_nk <- function(kSim) {
   return(min_nk)
 }
 
-kSims <- c(10,50,100)
+kSims <- c(100,500,1000)
 min_nk <- list();var_nk <- c();abs_nk <- c()
 
 for (i in 1:length(kSims)) {
@@ -203,12 +229,13 @@ for (i in 1:length(kSims)) {
 }
 
 print(abs_nk)
-
+par(mfrow = c(3,1))
 for (i in 1:length(kSims)){
   hist(min_nk[[i]], main = paste("Histogram of n for" , kSims[i], "of simulation replicates"),
        xlab = "Minimum Sample Size")
 }
 
+par(mfrow = c(1,1))
 ggplot(data.frame(
   kSim = kSims,
   var = var_nk), aes(y=var_nk, x=kSim)) +
@@ -220,35 +247,35 @@ ggplot(data.frame(
 # then set it smaller as 1 to find the more accurate estimation and run the simulation
 min_nt1 <- c();min_nt2 <- c();min_nt3 <- c()
 thresholds <- c(0.8,0.9,0.95)
-for (i in 1:length(thresholds)){
-  for (k in 1:kEvl){
+for (k in 1:kEvl){
     min_nt1 <- c(min_nt1,sim_cpmean(kSim = kSim,rp = 3,step = 1,
                                     17,18,2,2,
-                                    min_sz = 70,max_sz = 80,threshold = thresholds[i])[[2]])
+                                    min_sz = 70,max_sz = 80,threshold = thresholds[1])[[2]])
     min_nt2 <- c(min_nt2,sim_cpmean(kSim = kSim,rp = 3,step = 1,
                                     17,18,2,2,
-                                    min_sz = 95,max_sz = 110,threshold = thresholds[i])[[2]])
+                                    min_sz = 95,max_sz = 110,threshold = thresholds[2])[[2]])
     min_nt3 <- c(min_nt3,sim_cpmean(kSim = kSim,rp = 3,step = 1,
                                     17,18,2,2,
-                                    min_sz = 120,max_sz = 130,threshold = thresholds[i])[[2]])
+                                    min_sz = 120,max_sz = 130,threshold = thresholds[3])[[2]])
   }
-}
 
-for (k in 1:kEvl){
-  min_nt3 <- c(min_nt3,sim_cpmean(kSim = kSim,rp = 3,step = 1,
-                                  17,18,2,2,
-                                  min_sz = 120,max_sz = 130,threshold = thresholds[3])[[2]])
-}
+# for (k in 1:kEvl){
+#   min_nt3 <- c(min_nt3,sim_cpmean(kSim = kSim,rp = 3,step = 1,
+#                                   17,18,2,2,
+#                                   min_sz = 120,max_sz = 130,threshold = thresholds[3])[[2]])
+# }
 var_nt <- c(var(min_nt1),var(min_nt2),var(min_nt3))
 print(c(abs(n_formula(0.8)-mean(min_nt1)),abs(n_formula(0.9)-mean(min_nt2)),
         abs(n_formula(0.95)-mean(min_nt3))))
 
+par(mfrow = c(3,1))
 min_nt <- list(min_nt1,min_nt2,min_nt3)
 for (i in 1:3){
   hist(min_nt[[i]], main = paste("Histogram of Power Threshold ", thresholds[i]),
        xlab = "Minimum Sample Size")
 }
 
+par(mfrow = c(1,1))
 ggplot(data.frame(
   threshold = c(0.8,0.9,0.95),
   var = var_nt), aes(y=var, x=threshold))+
@@ -256,4 +283,6 @@ ggplot(data.frame(
     labs(x="Power Threshold", y="Variability of n")
 
 save(min_nr,min_nk,min_nt, 
-     file = "/Users/beep/Downloads/申研/Cambridge/MRC BSU Internship/results.Rdata")
+    file = "/Users/beep/Downloads/申研/Cambridge/MRC BSU Internship/results2.Rdata")
+
+### Retetet
