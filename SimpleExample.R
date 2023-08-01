@@ -154,8 +154,8 @@ print(sd(min_n))
 
 ##### Sensitivity Analysis #####
 kEvl = 100;kSim = 1000
-# Changing randomization procedure
 
+###### Changing randomization procedure ######
 # Function to calculate min_nr for a specific randomization procedure
 calc_min_nr <- function(rp) {
   min_nr <- c()
@@ -175,14 +175,15 @@ var_nr <- c(var(min_nr1),var(min_nr2),var(min_nr3))
 print(var_nr)
 print(c(abs(n_formula(0.9)-mean(min_nr1)),abs(n_formula(0.9)-mean(min_nr2)),
         abs(n_formula(0.9)-mean(min_nr3))))
-
+n_formula(0.9)
+par(mfrow=c(3,1))
 # Histogram
 for (i in 1:3){
   hist(min_nr[[i]], main = paste("Histogram of n for Randomization Procedure " , i),
        xlab = "Minimum Sample Size")
 }
 
-# Number of simulation study
+###### Number of simulation study ######
 calc_min_nk <- function(kSim) {
   min_nk <- c()
   for (i in 1:kEvl) {
@@ -215,7 +216,7 @@ ggplot(data.frame(
     geom_line() +
     labs(x="Number of Simulation Study", y="Variability of n")
 
-# Threshold
+###### Power Threshold ######
 # Note that at first we set step larger to see a small range of sample size and
 # then set it smaller as 1 to find the more accurate estimation and run the simulation
 min_nt1 <- c();min_nt2 <- c();min_nt3 <- c()
@@ -234,11 +235,6 @@ for (i in 1:length(thresholds)){
   }
 }
 
-for (k in 1:kEvl){
-  min_nt3 <- c(min_nt3,sim_cpmean(kSim = kSim,rp = 3,step = 1,
-                                  17,18,2,2,
-                                  min_sz = 120,max_sz = 130,threshold = thresholds[3])[[2]])
-}
 var_nt <- c(var(min_nt1),var(min_nt2),var(min_nt3))
 print(c(abs(n_formula(0.8)-mean(min_nt1)),abs(n_formula(0.9)-mean(min_nt2)),
         abs(n_formula(0.95)-mean(min_nt3))))
@@ -257,3 +253,4 @@ ggplot(data.frame(
 
 save(min_nr,min_nk,min_nt, 
      file = "/Users/beep/Downloads/申研/Cambridge/MRC BSU Internship/results.Rdata")
+load("/Users/beep/Downloads/申研/Cambridge/MRC BSU Internship/results.Rdata")
