@@ -29,13 +29,23 @@ create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
     }
   }
   
-  outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
-    group * rnorm(n=n, mean=mu_1, sd=sigma_1)
+  
+  #outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
+  #  group * rnorm(n=n, mean=mu_1, sd=sigma_1)
+  outcome <- c()
+  for (i in 1: length(group)){
+    if (group[i] == 0){
+      outcome[i] <- rnorm(1,mean=mu_0, sd=sigma_0)
+    }
+    else{
+      outcome[i] <- rnorm(1,mean=mu_1, sd=sigma_1)
+    }
+  }
   return(data.frame("group"=group, "outcome"=outcome))
 }
 
 # Test data-generating function
-create_rct_data(n=3, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
+data1 <- create_rct_data(n=4, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
 
 # Test whether to reject null-hypothesis using z-test
 run_test <- function(data) {
