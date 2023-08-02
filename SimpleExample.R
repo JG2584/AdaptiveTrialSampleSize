@@ -1,47 +1,89 @@
 # Basic Sample Size Calculation
 
 #### Data Generating Function ####
-create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
-  # Randomization procedure 1
-  if (procedure == 1){
-    group <- sample(rep(c(0,1),n)) 
-  }
-  
-  # Randomization procedure 2: Binomial
-  # most random way to generate the sequence:note that this result in non-equal 
-  # sample size per arm
-  if (procedure == 2){
-    group <- (runif(2*n) > 0.5)*1
-  }
-  
-  
-  # Randomization procedure 3: Truncated Binomial
-  else{
-    group <- c()
-    for (i in 1:(2*n)) {
-      a <- sum(group == 1)
-      b <- sum(group == 0)
-      if (max(a, b) >= n) {
-        group <- c(group, rep(1, n - a), rep(0, n - b))
-        break
-      }
-      group <- c(group, (runif(1) > 0.5)*1)
+# create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
+#   # Randomization procedure 1
+#   if (procedure == 1){
+#     group <- sample(rep(c(0,1),n)) 
+#   }
+#   
+#   # Randomization procedure 2: Binomial
+#   # most random way to generate the sequence:note that this result in non-equal 
+#   # sample size per arm
+#   if (procedure == 2){
+#     group <- (runif(2*n) > 0.5)*1
+#   }
+#   
+#   
+#   # Randomization procedure 3: Truncated Binomial
+#   else{
+#     group <- c()
+#     for (i in 1:(2*n)) {
+#       a <- sum(group == 1)
+#       b <- sum(group == 0)
+#       if (max(a, b) >= n) {
+#         group <- c(group, rep(1, n - a), rep(0, n - b))
+#         break
+#       }
+#       group <- c(group, (runif(1) > 0.5)*1)
+#     }
+#   }
+#   
+#   
+#   #outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
+#   #  group * rnorm(n=n, mean=mu_1, sd=sigma_1)
+#   outcome <- c()
+#   for (i in 1: length(group)){
+#     if (group[i] == 0){
+#       outcome[i] <- rnorm(1,mean=mu_0, sd=sigma_0)
+#     }
+#     else{
+#       outcome[i] <- rnorm(1,mean=mu_1, sd=sigma_1)
+#     }
+#   }
+#   return(data.frame("group"=group, "outcome"=outcome))
+# }
+
+proc1 <- function(n){
+  group <- sample(rep(c(0,1),n)) 
+  group
+}
+
+proc2 <- function(n){
+  group <- (runif(2*n) > 0.5)*1
+  group
+}
+
+proc3 <- function(n){
+  group <- c()
+  for (i in 1:(2*n)) {
+    a <- sum(group == 1)
+    b <- sum(group == 0)
+    if (max(a, b) >= n) {
+      group <- c(group, rep(1, n - a), rep(0, n - b))
+      break
     }
+    group <- c(group, (runif(1) > 0.5)*1)
+  }
+  group
+}
+
+create_rct_data <- function(n=10, procedure=3, mu_0=1, mu_1=2, sigma_0=1, sigma_1=1, kSim=5){
+  if(procedure==1){
+    #group <- replicate(kSim, proc1(n)) # could use for multiple sims
+    group <- proc1(n)
+  }else if(procedure==2){
+    #group <- replicate(kSim, proc2(n)) # could use for multiple sims
+    group <- proc2(n)
+  }else{
+    #group <- replicate(kSim, proc3(n)) # could use for multiple sims
+    group <- proc3(n)
   }
   
-  
-  #outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
-  #  group * rnorm(n=n, mean=mu_1, sd=sigma_1)
-  outcome <- c()
-  for (i in 1: length(group)){
-    if (group[i] == 0){
-      outcome[i] <- rnorm(1,mean=mu_0, sd=sigma_0)
-    }
-    else{
-      outcome[i] <- rnorm(1,mean=mu_1, sd=sigma_1)
-    }
-  }
-  return(data.frame("group"=group, "outcome"=outcome))
+  df <- data.frame(group=group, outcome=NA)
+  df$outcome[df$group==0] <-  rnorm(n=sum(df$group==0), mean=mu_0, sd=sigma_0)
+  df$outcome[df$group==1] <-  rnorm(n=sum(df$group==1), mean=mu_1, sd=sigma_1)
+  return(df)
 }
 
 # Test data-generating function
