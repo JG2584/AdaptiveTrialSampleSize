@@ -94,12 +94,23 @@ run_test <- function(data) {
   #test_result <- t.test(outcome~group, data=data)
   #return(as.integer(test_result$p.value<0.05))
   
-  group_means <- tapply(data$outcome, data$group, mean)
-  group_sds <- tapply(data$outcome, data$group, sd)
-  n1 <- sum(data$group == levels(as.factor(data$group))[1])
-  n2 <- sum(data$group == levels(as.factor(data$group))[2])
+  # group_means <- tapply(data$outcome, data$group, mean)
+  # group_sds <- tapply(data$outcome, data$group, sd)
+  # n1 <- sum(data$group == levels(as.factor(data$group))[1])
+  # n2 <- sum(data$group == levels(as.factor(data$group))[2])
+  # 
+  # z_score <- (group_means[1] - group_means[2]) / sqrt((group_sds[1]^2 / n1) + (group_sds[2]^2 / n2))
   
-  z_score <- (group_means[1] - group_means[2]) / sqrt((group_sds[1]^2 / n1) + (group_sds[2]^2 / n2))
+  grp0 <- data$group==0
+  grp1 <- !grp0
+  group0_mean <- mean(data$outcome[grp0])
+  group1_mean <- mean(data$outcome[grp1])
+  group0_sd <- sd(data$outcome[grp0])
+  group1_sd <- sd(data$outcome[grp1])
+  n1 <- sum(grp0)
+  n2 <- sum(grp1)
+  
+  z_score <- (group0_mean - group1_mean) / sqrt((group0_sd^2 / n1) + (group1_sd^2 / n2))
   p_value <- 2 * (1 - pnorm(abs(z_score)))
   
   return(as.integer(p_value < 0.05))
