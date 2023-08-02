@@ -45,7 +45,7 @@ create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
 }
 
 # Test data-generating function
-data1 <- create_rct_data(n=4, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
+create_rct_data(n=8, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
 
 # Test whether to reject null-hypothesis using z-test
 run_test <- function(data) {
@@ -161,6 +161,7 @@ sim_cpmean <- function(kSim,rp,step,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,thr
   return(list(power_sim,min(elgb_sz)))
 }
 #print(sim_cpmean(100,10,17,18,2,2,100,150,0.9))
+sim_cpmean(1000,2,1,17,18,2,2,95,105,0.9)
 
 #### Metrics ####
 # Variability of n
