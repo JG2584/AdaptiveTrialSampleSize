@@ -66,8 +66,8 @@ run_test <- function(data) {
 #### Simulation Study ####
 set.seed(43)
 kSim <- 1000
-power_sim <- data.frame(matrix(ncol = 2, nrow = 0))
-colnames(power_sim) <- c("SampleSize","Power")
+power_sim <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(power_sim) <- c("SampleSize","Power", "MCSE")
 sample_size <- seq(10,150,20)
 start_time <- Sys.time()
 for (i in 1:length(sample_size)){
@@ -81,7 +81,9 @@ for (i in 1:length(sample_size)){
     df_temp[k,] <- c(nSim = k,sampleSize = sample_size[i],test = result)
     #print(df_temp)
   }
-  power_sim[i,] <- c(sample_size[i],sum(df_temp$test)/kSim)
+  current.power <- sum(df_temp$test)/kSim
+  mcse <- round(sqrt(current.power*(1-current.power)/kSim), 5)
+  power_sim[i, ] <- c(sample_size[i],current.power, mcse)
 }
 print(power_sim)
 end_time <- Sys.time()
