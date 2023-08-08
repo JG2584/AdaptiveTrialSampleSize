@@ -1,116 +1,54 @@
 # Basic Sample Size Calculation
 
 #### Data Generating Function ####
-# create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
-#   # Randomization procedure 1
-#   if (procedure == 1){
-#     group <- sample(rep(c(0,1),n)) 
-#   }
-#   
-#   # Randomization procedure 2: Binomial
-#   # most random way to generate the sequence:note that this result in non-equal 
-#   # sample size per arm
-#   if (procedure == 2){
-#     group <- (runif(2*n) > 0.5)*1
-#   }
-#   
-#   
-#   # Randomization procedure 3: Truncated Binomial
-#   else{
-#     group <- c()
-#     for (i in 1:(2*n)) {
-#       a <- sum(group == 1)
-#       b <- sum(group == 0)
-#       if (max(a, b) >= n) {
-#         group <- c(group, rep(1, n - a), rep(0, n - b))
-#         break
-#       }
-#       group <- c(group, (runif(1) > 0.5)*1)
-#     }
-#   }
-#   
-#   
-#   #outcome <- (1-group) * rnorm(n=n, mean=mu_0, sd=sigma_0) +
-#   #  group * rnorm(n=n, mean=mu_1, sd=sigma_1)
-#   outcome <- c()
-#   for (i in 1: length(group)){
-#     if (group[i] == 0){
-#       outcome[i] <- rnorm(1,mean=mu_0, sd=sigma_0)
-#     }
-#     else{
-#       outcome[i] <- rnorm(1,mean=mu_1, sd=sigma_1)
-#     }
-#   }
-#   return(data.frame("group"=group, "outcome"=outcome))
-# }
-
-proc1 <- function(n){
-  group <- sample(rep(c(0,1),n)) 
-  group
-}
-
-proc2 <- function(n){
-  group <- (runif(2*n) > 0.5)*1
-  group
-}
-
-proc3 <- function(n){
-  group <- c()
-  for (i in 1:(2*n)) {
-    a <- sum(group == 1)
-    b <- sum(group == 0)
-    if (max(a, b) >= n) {
-      group <- c(group, rep(1, n - a), rep(0, n - b))
-      break
-    }
-    group <- c(group, (runif(1) > 0.5)*1)
-  }
-  group
-}
-
-create_rct_data <- function(n=10, procedure=3, mu_0=1, mu_1=2, sigma_0=1, sigma_1=1, kSim=5){
-  if(procedure==1){
-    #group <- replicate(kSim, proc1(n)) # could use for multiple sims
-    group <- proc1(n)
-  }else if(procedure==2){
-    #group <- replicate(kSim, proc2(n)) # could use for multiple sims
-    group <- proc2(n)
-  }else{
-    #group <- replicate(kSim, proc3(n)) # could use for multiple sims
-    group <- proc3(n)
+create_rct_data <- function(n, procedure, mu_0, mu_1, sigma_0, sigma_1) {
+  # Randomization procedure 1
+  if (procedure == 1){
+    group <- sample(rep(c(0,1),n)) 
   }
   
-  df <- data.frame(group=group, outcome=NA)
-  df$outcome[df$group==0] <-  rnorm(n=sum(df$group==0), mean=mu_0, sd=sigma_0)
-  df$outcome[df$group==1] <-  rnorm(n=sum(df$group==1), mean=mu_1, sd=sigma_1)
-  return(df)
+  # Randomization procedure 2: Binomial
+  # most random way to generate the sequence:note that this result in non-equal 
+  # sample size per arm
+  if (procedure == 2){
+    group <- (runif(2*n) > 0.5)*1
+  }
+  
+  
+  # Randomization procedure 3: Truncated Binomial
+  else{
+    group <- c()
+    for (i in 1:(2*n)) {
+      a <- sum(group == 1)
+      b <- sum(group == 0)
+      if (max(a, b) >= n) {
+        group <- c(group, rep(1, n - a), rep(0, n - b))
+        break
+      }
+      group <- c(group, (runif(1) > 0.5)*1)
+    }
+  }
+  
+  outcome <- ifelse(group == 0, rnorm(sum(group == 0),mean = mu_0, sd = sigma_0),
+                    rnorm(sum(group == 1), mean = mu_1, sd = sigma_1))
+  
+  return(data.frame("group"=group, "outcome"=outcome))
 }
 
 # Test data-generating function
-create_rct_data(n=8, 3, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
+create_rct_data(n=5, 2, mu_0=2, mu_1=4, sigma_0=0.1, sigma_1=0.1)
 
 # Test whether to reject null-hypothesis using z-test
 run_test <- function(data) {
   #test_result <- t.test(outcome~group, data=data)
   #return(as.integer(test_result$p.value<0.05))
   
-  # group_means <- tapply(data$outcome, data$group, mean)
-  # group_sds <- tapply(data$outcome, data$group, sd)
-  # n1 <- sum(data$group == levels(as.factor(data$group))[1])
-  # n2 <- sum(data$group == levels(as.factor(data$group))[2])
-  # 
-  # z_score <- (group_means[1] - group_means[2]) / sqrt((group_sds[1]^2 / n1) + (group_sds[2]^2 / n2))
+  group_means <- tapply(data$outcome, data$group, mean)
+  group_sds <- tapply(data$outcome, data$group, sd)
+  n1 <- sum(data$group == 0)
+  n2 <- sum(data$group == 1)
   
-  grp0 <- data$group==0
-  grp1 <- !grp0
-  group0_mean <- mean(data$outcome[grp0])
-  group1_mean <- mean(data$outcome[grp1])
-  group0_sd <- sd(data$outcome[grp0])
-  group1_sd <- sd(data$outcome[grp1])
-  n1 <- sum(grp0)
-  n2 <- sum(grp1)
-  
-  z_score <- (group0_mean - group1_mean) / sqrt((group0_sd^2 / n1) + (group1_sd^2 / n2))
+  z_score <- (group_means[1] - group_means[2]) / sqrt((group_sds[1]^2 / n1) + (group_sds[2]^2 / n2))
   p_value <- 2 * (1 - pnorm(abs(z_score)))
   
   return(as.integer(p_value < 0.05))
@@ -119,8 +57,8 @@ run_test <- function(data) {
 #### Simulation Study ####
 set.seed(43)
 kSim <- 1000
-power_sim <- data.frame(matrix(ncol = 3, nrow = 0))
-colnames(power_sim) <- c("SampleSize","Power", "MCSE")
+power_sim <- data.frame(matrix(ncol = 2, nrow = 0))
+colnames(power_sim) <- c("SampleSize","Power")
 sample_size <- seq(10,150,20)
 start_time <- Sys.time()
 for (i in 1:length(sample_size)){
@@ -134,9 +72,7 @@ for (i in 1:length(sample_size)){
     df_temp[k,] <- c(nSim = k,sampleSize = sample_size[i],test = result)
     #print(df_temp)
   }
-  current.power <- sum(df_temp$test)/kSim
-  mcse <- round(sqrt(current.power*(1-current.power)/kSim), 5)
-  power_sim[i, ] <- c(sample_size[i],current.power, mcse)
+  power_sim[i,] <- c(sample_size[i],sum(df_temp$test)/kSim)
 }
 print(power_sim)
 end_time <- Sys.time()
@@ -215,8 +151,46 @@ sim_cpmean <- function(kSim,rp,step,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,thr
   print(end_time - start_time)
   return(list(power_sim,min(elgb_sz)))
 }
+#### Bisection ####
+sim_cpmean2 <- function(kSim,rp,mu_0,mu_1, sigma_0,sigma_1,min_sz,max_sz,threshold){
+  #set.seed(43)
+  power_sim <- data.frame(matrix(ncol = 2, nrow = 0))
+  colnames(power_sim) <- c("SampleSize","Power")
+  # Consider change it to bisection method
+  sample_size <- c(min_sz,max_sz)
+  start_time <- Sys.time()
+  i <- 1
+  power_now <- 0
+  while (abs(power_now - threshold) > 0.005 ) {
+    df_temp <- data.frame(matrix(ncol = 3, nrow = 0))
+    colnames(df_temp) <- c("nSim","sampleSize","test")
+    #print(df_temp)
+    for (k in 1:kSim){
+      data <- create_rct_data(n = sample_size[i], rp,mu_0=mu_0, mu_1=mu_1, sigma_0=sigma_0, sigma_1=sigma_1)
+      result <- run_test(data)
+      # Do not use rbind, as it changes the original column names of the dataframe
+      df_temp[k,] <- c(nSim = k,sampleSize = sample_size[i],test = result)
+      #print(df_temp)
+    }
+    power_now <- sum(df_temp$test)/kSim
+    power_sim[i,] <- c(sample_size[i],power_now)
+    print(power_sim)
+    if (i == 1) {
+      i = i+1
+      next
+    }
+    else{
+      sample_size <- c(sample_size,round((sample_size[i]+sample_size[i-1])/2))
+      print(sample_size)
+      i = i+1
+      }
+    }
+  end_time <- Sys.time()
+  print(end_time - start_time)
+  return(list(power_sim,power_sim[length(power_sim),]))
+}
 #print(sim_cpmean(100,10,17,18,2,2,100,150,0.9))
-sim_cpmean(1000,2,1,17,18,2,2,95,105,0.9)
+sim_cpmean2(1000,2,17,18,2,2,70,130,0.9)
 
 #### Metrics ####
 # Variability of n
