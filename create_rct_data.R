@@ -21,7 +21,7 @@ for(i in 1:kSim){
   outcome.list[[i]] <- outcome.vec
 }
 
-output <- Map(cbind, x, outcome.list)
+output <- Map(cbind, group, outcome.list)
 output
 
 }
